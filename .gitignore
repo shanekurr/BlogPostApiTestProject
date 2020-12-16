@@ -4,3 +4,5 @@
 
 /.vs
 /FieldLevel/.vs/FieldLevel
+/FieldLevel/bin/Debug/netcoreapp3.0
+/FieldLevelTests/bin/Debug/netcoreapp3.0
