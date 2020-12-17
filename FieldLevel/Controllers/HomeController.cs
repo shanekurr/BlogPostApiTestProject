@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 namespace FieldLevel.Controllers
 {
@@ -24,10 +25,29 @@ namespace FieldLevel.Controllers
         }
 
         [HttpGet]
-        public async Task<HttpResponseMessage> Get()
+        public async Task<JsonResult> GetAsync()
         {
-            var result = await _client.GetAsync(DATA_SOURCE_URL);
-            return result;
+            // TODO: Check cache for latest results from within the last minute.
+           
+            var response = await _client.GetAsync(DATA_SOURCE_URL);
+            var userPosts = JsonConvert.DeserializeObject<List<UserPost>>(await response.Content.ReadAsStringAsync());
+            var latestUserPosts = getLatestUserPosts(userPosts);
+            
+            // TODO: cache latest results.
+            
+            return new JsonResult(userPosts);
+        }
+
+        private List<UserPost> getLatestUserPosts(List<UserPost> userPosts)
+        {
+            var userIds = userPosts.Select(t => t.UserId).Distinct();
+            var latestPosts = new List<UserPost>();
+            foreach(var userId in userIds)
+            {
+                var latestPost = userPosts.Where(t => t.UserId == userId).OrderByDescending(t => t.Id).FirstOrDefault();
+                latestPosts.Add(latestPost);
+            }
+            return latestPosts;
         }
     }
 }
