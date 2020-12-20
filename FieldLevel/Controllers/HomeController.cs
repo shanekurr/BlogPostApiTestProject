@@ -18,10 +18,10 @@ namespace FieldLevel.Controllers
         private readonly HttpClient _client;
         private const string DATA_SOURCE_URL = "https://jsonplaceholder.typicode.com/posts";
 
-        public HomeController(ILogger<HomeController> logger, HttpClient client)
+        public HomeController(ILogger<HomeController> logger, IHttpClientFactory clientFactory)
         {
             _logger = logger;
-            _client = client;
+            _client = clientFactory.CreateClient();
         }
 
         [HttpGet]
@@ -35,7 +35,7 @@ namespace FieldLevel.Controllers
             
             // TODO: cache latest results.
             
-            return new JsonResult(userPosts);
+            return new JsonResult(latestUserPosts);
         }
 
         private List<UserPost> getLatestUserPosts(List<UserPost> userPosts)
