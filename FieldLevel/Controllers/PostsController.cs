@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using FieldLevel.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -19,54 +20,35 @@ namespace FieldLevel.Controllers
         private readonly ILogger<PostsController> _logger;
         private readonly HttpClient _client;
         private IMemoryCache _cache;
+        private PostsService _postsService;
 
         // Should move this url to appsettings when in production
         private const string DATA_SOURCE_URL = "https://jsonplaceholder.typicode.com/posts";
         private const string RESULTS_CACHE_KEY = "result_set";
 
-        public PostsController(ILogger<PostsController> logger, IHttpClientFactory clientFactory, IMemoryCache cache)
+        public PostsController(PostsService postsService)
         {
-            _logger = logger;
-            _client = clientFactory.CreateClient();
-            _cache = cache;            
+            
+            _postsService = postsService;
         }
 
         [HttpGet]
         public async Task<ActionResult> GetAsync()
         {
-            if (_cache.TryGetValue(RESULTS_CACHE_KEY, out List<UserPost> cachedUserPosts))
-            {
-                return new JsonResult(cachedUserPosts);
-            }
-
+            
             List<UserPost> userPosts;
             try
             {
-                var response = await _client.GetAsync(DATA_SOURCE_URL);
-                userPosts = JsonConvert.DeserializeObject<List<UserPost>>(await response.Content.ReadAsStringAsync());
-                
+                userPosts = await _postsService.GetLatestPostPerUserAsync();
             } catch(Exception ex)
             {
                 _logger.LogError("GetAsync failed when calling data provider.", ex);
                 return StatusCode(500,"An error occurred while processing your request.");
             }
 
-            var latestUserPosts = getLatestUserPostForEachUser(userPosts);
-            _cache.Set(RESULTS_CACHE_KEY, latestUserPosts, TimeSpan.FromMinutes(1));
-
-            return new JsonResult(latestUserPosts);
+            
+            return new JsonResult(userPosts);
         }
 
-        private List<UserPost> getLatestUserPostForEachUser(List<UserPost> userPosts)
-        {
-            var userIds = userPosts.Select(t => t.UserId).Distinct();
-            var latestPosts = new List<UserPost>();
-            foreach(var userId in userIds)
-            {
-                var latestPost = userPosts.Where(t => t.UserId == userId).OrderByDescending(t => t.Id).FirstOrDefault();
-                latestPosts.Add(latestPost);
-            }
-            return latestPosts;
-        }
     }
 }

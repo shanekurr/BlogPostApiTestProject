@@ -10,6 +10,7 @@ using System.Net;
 using Microsoft.Extensions.Caching.Memory;
 using System.Web.Http.Results;
 using Microsoft.AspNetCore.Mvc;
+using FieldLevel.Services;
 
 namespace FieldLevel.Controllers.Tests
 {
@@ -21,6 +22,8 @@ namespace FieldLevel.Controllers.Tests
         [TestMethod()]
         public async Task GetTest_Success()
         {
+
+            
             // Found how to mock IHttpClientFactory at https://www.thecodebuzz.com/mock-typed-httpclient-httpclientfactory-moq-net-core/
             var mockFactory = new Mock<IHttpClientFactory>();
             var handler = new Mock<IHttpClientFactory>();
@@ -41,7 +44,8 @@ namespace FieldLevel.Controllers.Tests
                 .Setup(m => m.CreateEntry(It.IsAny<object>()))
                 .Returns(cacheEntry);
 
-            var testController = new PostsController(new NullLogger<PostsController>(), mockFactory.Object, mockMemoryCache.Object);
+            var postsService = new PostsService(new NullLogger<PostsService>(), mockFactory.Object, mockMemoryCache.Object);
+            var testController = new PostsController(postsService);
             var result = await testController.GetAsync() as JsonResult;
             Assert.IsNotNull(result);
             var userPosts = result.Value as List<UserPost>;
